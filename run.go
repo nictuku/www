@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func Log(handler http.Handler) http.Handler {
@@ -34,16 +35,34 @@ func Log(handler http.Handler) http.Handler {
 	})
 }
 
-func main() {
+func homeDir() string {
 	home := os.Getenv("HOME")
 	if home == "" {
 		home = string(filepath.Separator)
 	}
-	dir := filepath.Join(home, "www")
+	return filepath.Join(home, "www")
+}
+
+func main() {
+	var dir string
+	switch len(os.Args) {
+	case 1:
+		dir = homeDir()
+	case 2:
+		dir = os.Args[1]
+	default:
+		log.Fatalln("Too many arguments")
+		log.Fatalln("Usage: %v [dir]", os.Args[0])
+	}
+	dir = filepath.Clean(dir)
 	log.Printf("Serving files from %v", dir)
 
 	err := http.ListenAndServe(":80", Log(http.FileServer(http.Dir(dir))))
 	if err != nil {
 		log.Println("Error starting www server:", err)
+		// os.IsPermission doesn't match.
+		if strings.Contains(err.Error(), "permission denied") {
+			log.Println("Try: sudo setcap 'cap_net_bind_service=+ep' www")
+		}
 	}
 }
