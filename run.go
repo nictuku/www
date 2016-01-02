@@ -26,7 +26,26 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/nictuku/mothership/login"
 )
+
+func RequireAuth(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		passport, err := login.CurrentPassport(req)
+		if err != nil {
+			log.Printf("Redirecting to ghlogin: %q. Referrer: %q", err, req.Referer())
+			http.Redirect(w, req, "/ghlogin", http.StatusFound)
+			return
+		}
+		if passport.Email == "yves.junqueira@gmail.com" {
+			handler.ServeHTTP(w, req)
+		} else {
+			http.Error(w, "Nope.", http.StatusForbidden)
+		}
+
+	})
+}
 
 func Log(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
