@@ -75,8 +75,8 @@ func main() {
 	}
 	dir = filepath.Clean(dir)
 	log.Printf("Serving files from %v", dir)
-
-	err := http.ListenAndServe(":80", Log(http.FileServer(http.Dir(dir))))
+	http.Handle("/", RequireAuth(Log(http.FileServer(http.Dir(dir)))))
+	err := http.ListenAndServe(":80", nil)
 	if err != nil {
 		log.Println("Error starting www server:", err)
 		// os.IsPermission doesn't match.
